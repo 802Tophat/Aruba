@@ -1,1 +1,1 @@
-file: venv/ .vscode/
+file: venv/ .vscode/ .gitignore

@@ -14,34 +14,35 @@ parser.add_argument('--password', type=str, help="Password")
 parser.add_argument('--vlan', type=str, help="VLAN")
 args = parser.parse_args()
 
-# Log into Aruba Controller and retrieve UIDARUBA for API access
-r = requests.get(url='https://' + args.ip + ':4343/v1/api/login?username=' \
-+ args.user +'&password=' + args.password, verify=False)
+# Log into Aruba Controller and retrieve X-CSRF-Token for API access
+r = requests.get(url='https://' + args.ip + ':4343/v1/api/login?username=' + args.user +'&password=' + args.password, verify=False)
 logindata = r.json()
+token = logindata['_global_result']['X-CSRF-Token']
 uid = logindata['_global_result']['UIDARUBA']
 cookies = {'SESSION': uid}
-print("Our UID for this sessions is: " + uid)
+print("Our X-CSRF-Token for this sessions is: " + token)
 
 # GET API to retrieve what VLANs are active on the controller
 print("Retreiving Existing VLAN Information \n")
-getvlan_id = requests.get(url="https://" + args.ip + ":4343/v1/configuration/object/vlan_id?config_path=%2Fmm&UIDARUBA=" + uid, verify=False, cookies=cookies)
+getvlan_id = requests.get(url="https://" + args.ip + ":4343/v1/configuration/object/vlan_id", headers={"X-CSRF-Token": token}, verify=False, cookies=cookies)
+print(getvlan_id)
 vlandata = getvlan_id.json()
 pprint(vlandata, indent=3)
 
 # POST API to create a new VLAN
 print("Creating VLAN: " + args.vlan)
 body = {'id': args.vlan}
-headers = {'content-type': 'application/json'}
-postvlan_id = requests.post(url='https://' + args.ip + ":4343/v1/configuration/object/vlan_id?config_path=%2Fmm&UIDARUBA=" + uid, data=json.dumps(body), headers=headers, verify=False, cookies=cookies)
+# headers = {'content-type': 'application/json'}
+postvlan_id = requests.post(url='https://' + args.ip + ":4343/v1/configuration/object/vlan_id?config_path=%2Fmm", headers={"X-CSRF-Token": token}, data=json.dumps(body), verify=False, cookies=cookies)
 print(postvlan_id)
 
 # POST API to save the configuration
 print("Saving Configuration")
-w = requests.post(url="https://" + args.ip + ":4343/v1/configuration/object/write_memory?config_path=%2Fmm&UIDARUBA=" + uid, verify=False, cookies=cookies)
+w = requests.post(url="https://" + args.ip + ":4343/v1/configuration/object/write_memory?config_path=%2Fmm", headers={"X-CSRF-Token": token}, verify=False, cookies=cookies)
 print("Complete!")
 
 # Get API to retrieve the updated VLAN list
 print("Retreiving Existing VLAN Information \n")
-getvlan_id = requests.get(url="https://" + args.ip + ":4343/v1/configuration/object/vlan_id?config_path=%2Fmm&UIDARUBA=" + uid, verify=False, cookies=cookies)
+getvlan_id = requests.get(url="https://" + args.ip + ":4343/v1/configuration/object/vlan_id?config_path=%2Fmm", headers={"X-CSRF-Token": token}, verify=False, cookies=cookies)
 vlandata = getvlan_id.json()
 pprint(vlandata, indent=3)
